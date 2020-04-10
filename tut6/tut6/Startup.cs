@@ -1,15 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using tut6.Models;
 
 namespace tut6
 {
@@ -36,7 +39,41 @@ namespace tut6
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseHttpsRedirection();
+            app.Use(async (context, next) =>
+            {
+
+                if (context.Request.Headers.ContainsKey("IndexNumber"))
+                {
+                    string indexNumber = context.Response.Headers["IndexNumber"].ToString();
+                    using (var con = new SqlConnection("Data Source=db-mssql;Initial Catalog=s19312;Integrated Security=True"))
+                    using (var com = new SqlCommand())
+                    {
+                        con.Open();
+                        SqlTransaction tran = con.BeginTransaction();
+                        com.Transaction = tran;
+                        com.Connection = con;
+                        Student student = new Student();
+                        com.Parameters.AddWithValue("IndexNumber", indexNumber);
+                        com.CommandText = "Select count()'count' from Student where IndexNumber = @IndexNumber)";
+                        var dr = com.ExecuteReader();
+                        dr.Read();
+                        if ((int)dr["count"] == 1)
+                        {
+                            await context.Response.WriteAsync("indexNumber Exist : @indexNumber");
+                            return;
+                        }
+                        else {
+                            context.Response.StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status401Unauthorized;
+                            await context.Response.WriteAsync("indexNumber does not Exist");
+                            return;
+                        }
+                    }
+                }
+                
+                await next();
+            });
+
+                app.UseHttpsRedirection();
 
             app.UseRouting();
 
