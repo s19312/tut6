@@ -1,0 +1,3 @@
+/api/studentsGET{
+	"Studies": "IT", "Semester": 1 
+}

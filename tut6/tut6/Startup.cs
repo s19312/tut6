@@ -12,7 +12,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using tut6.MIddlewares;
 using tut6.Models;
+using tut6.Services;
 
 namespace tut6
 {
@@ -28,6 +30,7 @@ namespace tut6
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddTransient<IStudentServiceDb, SqlServerStudentDbService>();
             services.AddControllers();
         }
 
@@ -42,9 +45,9 @@ namespace tut6
             app.Use(async (context, next) =>
             {
 
-                if (context.Request.Headers.ContainsKey("IndexNumber"))
+                if (context.Request.Headers.ContainsKey("Index"))
                 {
-                    string indexNumber = context.Response.Headers["IndexNumber"].ToString();
+                    string indexNumber = context.Response.Headers["Index"].ToString();
                     using (var con = new SqlConnection("Data Source=db-mssql;Initial Catalog=s19312;Integrated Security=True"))
                     using (var com = new SqlCommand())
                     {
@@ -73,7 +76,10 @@ namespace tut6
                 await next();
             });
 
-                app.UseHttpsRedirection();
+            app.UseMiddleware<LoggingMiddleware>();
+
+
+            app.UseHttpsRedirection();
 
             app.UseRouting();
 
